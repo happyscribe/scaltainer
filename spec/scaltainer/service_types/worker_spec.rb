@@ -20,7 +20,7 @@ describe ServiceTypeWorker do
 
     context 'when endpoint returns valid json' do
       let(:response_body) {
-        '[{"name":"worker1","quantity":10},{"name":"worker2","quantity":20}]'
+        '[{"name":"worker1","value":10},{"name":"worker2","value":20}]'
       }
       let(:metrics) {
         {"worker1" => 10, "worker2" => 20}
@@ -44,7 +44,7 @@ describe ServiceTypeWorker do
 
     context 'when endpoint returns unexpected json response' do
       let(:response_body) {
-        '{"name":"worker1","quantity":10}'
+        '{"name":"worker1","value":10}'
       }
 
       it 'raises ConfigurationError' do
