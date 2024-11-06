@@ -26,7 +26,7 @@ module Scaltainer
       end
     end
 
-    def determine_desired_replicas(metric, service_config, current_replicas)
+    def determine_desired_replicas(metric, service_config, current_replicas, logger=nil)
       super
       raise ConfigurationError.new "Missing max_response_time in web resource configuration" unless service_config["max_response_time"]
       raise ConfigurationError.new "Missing min_response_time in web resource configuration" unless service_config["min_response_time"]

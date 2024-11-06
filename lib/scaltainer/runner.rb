@@ -11,8 +11,8 @@ module Scaltainer
       @logger = logger
       @default_service_config = {
         "min" => 0,
-        "upscale_quantity" => 1,
-        "downscale_quantity" => 1,
+        "upscale_quantity" => nil,
+        "downscale_quantity" => nil,
         "upscale_sensitivity" => 1,
         "downscale_sensitivity" => 1
       }
@@ -87,7 +87,7 @@ module Scaltainer
       raise Scaltainer::Warning.new("Configured #{service.type} '#{service.name}' not found in metrics endpoint") unless metric
       state["metric"] = metric
       state["service_type"] = type.to_s
-      desired_replicas = type.determine_desired_replicas metric, config, current_replicas
+      desired_replicas = type.determine_desired_replicas metric, config, current_replicas, @logger
       @logger.debug "Desired number of replicas for #{service.type} #{service.name} is #{desired_replicas}"
       adjusted_replicas = type.adjust_desired_replicas(desired_replicas, config)
       @logger.debug "Desired number of replicas for #{service.type} #{service.name} is adjusted to #{adjusted_replicas}"

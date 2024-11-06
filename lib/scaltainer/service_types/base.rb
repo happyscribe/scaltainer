@@ -9,7 +9,7 @@ module Scaltainer
       raise Scaltainer::Warning.new "No resources found for #{self.class.name}" if services_count == 0
     end
 
-    def determine_desired_replicas(metric, service_config, current_replicas)
+    def determine_desired_replicas(metric, service_config, current_replicas, logger=nil)
       raise ConfigurationError.new 'No metric found for requested resource' unless metric
       raise ConfigurationError.new 'No configuration found for requested resource' unless service_config
     end

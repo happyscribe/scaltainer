@@ -3,6 +3,12 @@ require 'spec_helper'
 include Scaltainer
 
 describe ServiceTypeWorker do
+  let(:logger) { double(Logger) }
+  
+  before do
+    allow(logger).to receive(:info)  # Allow logger to receive info messages
+  end
+
   describe '#get_metrics' do
     let(:endpoint_host) { 'my-endpoint.com' }
     let(:endpoint) { "http://#{endpoint_host}/" }
@@ -75,7 +81,7 @@ describe ServiceTypeWorker do
       let(:config) { {"no_ratio" => nil} }
 
       it 'raises ConfigurationError' do
-        expect{worker_type.determine_desired_replicas(0, config, 0)}.to \
+        expect{worker_type.determine_desired_replicas(0, config, 0, logger)}.to \
           raise_exception ConfigurationError, /Missing ratio/
       end
     end
@@ -85,21 +91,21 @@ describe ServiceTypeWorker do
 
       context 'when metric is not a number' do
         it 'raises ConfigurationError' do
-          expect{worker_type.determine_desired_replicas('x', config, 0)}.to \
+          expect{worker_type.determine_desired_replicas('x', config, 0, logger)}.to \
             raise_exception ConfigurationError, /invalid metric/
         end
       end
 
       context 'when metric is a negative number' do
         it 'raises ConfigurationError' do
-          expect{worker_type.determine_desired_replicas(-1, config, 0)}.to \
+          expect{worker_type.determine_desired_replicas(-1, config, 0, logger)}.to \
             raise_exception ConfigurationError, /invalid metric/
         end
       end
 
       context 'when metric is a floating point number' do
         it 'raises ConfigurationError' do
-          expect{worker_type.determine_desired_replicas(1.2, config, 0)}.to \
+          expect{worker_type.determine_desired_replicas(1.2, config, 0, logger)}.to \
             raise_exception ConfigurationError, /invalid metric/
         end
       end
@@ -107,9 +113,37 @@ describe ServiceTypeWorker do
       context 'when metric is valid' do
         it 'computes desired replicas correctly' do
           {'0'=>0,'1'=>1,'3'=>1,'4'=>2,'6'=>2,'7'=>3,'10'=>4,'30'=>10}.each {|metric, replicas|
-            expect(worker_type.determine_desired_replicas(metric.to_i, config, 0)).to eq replicas
+            expect(worker_type.determine_desired_replicas(metric.to_i, config, 0, logger)).to eq replicas
           }
         end
+      end
+    end
+
+    context "with scaling quantities" do
+      it "respects upscale quantity" do
+        config = {"ratio" => 10}
+        config["upscale_quantity"] = 2
+        worker = described_class.new
+        
+        expect(worker.determine_desired_replicas(50, config, 1, logger)).to eq(3)  # Would be 5, but limited to +2
+        expect(worker.determine_desired_replicas(50, config, 3, logger)).to eq(5)  # Next step
+      end
+
+      it "respects downscale quantity" do
+        config = {"ratio" => 10}
+        config["downscale_quantity"] = 2
+        worker = described_class.new
+        
+        expect(worker.determine_desired_replicas(10, config, 5, logger)).to eq(3)  # Would be 1, but limited to -2
+        expect(worker.determine_desired_replicas(10, config, 3, logger)).to eq(1)  # Next step
+      end
+
+      it "uses infinity as default for both quantities" do
+        config = {"ratio" => 10}
+        worker = described_class.new
+        
+        expect(worker.determine_desired_replicas(50, config, 1, logger)).to eq(5)  # No limit on upscaling
+        expect(worker.determine_desired_replicas(10, config, 5, logger)).to eq(1)  # No limit on downscaling
       end
     end
   end # describe #determine_desired_replicas
